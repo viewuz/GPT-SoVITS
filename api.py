@@ -62,18 +62,21 @@ class TTS_Request(BaseModel):
     text: str = None
     sample_rate: int = 0
     streaming: bool = False
-    speed_factor: float = 0.6
+    speed_factor: float = 1
 
     top_k: int = 15
     top_p: float = 1
     temperature: float = 1
 
-    text_split_method: str = "cut5"
+    text_split_method: str = "cut1"
+
     batch_size: int = 1
     batch_threshold: float = 0.75
+
     split_bucket: bool = True
     fragment_interval: float = 0.3
     seed: int = -1
+
     parallel_infer: bool = True
     repetition_penalty: float = 1.35
     sample_steps: int = 32
@@ -159,7 +162,7 @@ async def speakers_post_endpoint(
 ):
     try:
         os.makedirs("uploaded_audio", exist_ok=True)
-        save_path = os.path.join("uploaded_audio", prompt_wav.filename)
+        save_path = os.path.join("uploaded_audio", f"{id}.wav")
 
         with open(save_path, "wb") as buffer:
             buffer.write(await prompt_wav.read())
