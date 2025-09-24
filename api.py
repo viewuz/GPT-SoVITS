@@ -85,7 +85,7 @@ class TTS_Request(BaseModel):
 
 def pack_audio(io_buffer: BytesIO, data: np.ndarray, origin_rate: int, target_rate: int):
     if target_rate == 0 or target_rate == origin_rate:
-        io_buffer = io_buffer.write(data.tobytes())
+        io_buffer.write(data.tobytes())
         io_buffer.seek(0)
         return io_buffer
     else:
