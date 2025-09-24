@@ -31,7 +31,7 @@ cut_method_names = get_cut_method_names()
 
 parser = argparse.ArgumentParser(description="GPT-SoVITS api")
 parser.add_argument("-p", "--port", type=int, default="8000", help="default: 8000")
-parser.add_argument("-s", "--secret", type=int, default="", help="")
+parser.add_argument("-s", "--secret", type=str, default="", help="")
 
 args = parser.parse_args()
 
