@@ -112,23 +112,15 @@ async def tts_handle(speaker_id: str, req: dict):
     try:
         tts_generator = tts_pipeline.run(req)
 
-        if streaming_mode:
+        def streaming_generator(_generator: Generator):
+            for sr, chunk in _generator:
+                yield pack_audio(BytesIO(), chunk, sr, sample_rate).getvalue()
 
-            def streaming_generator(_generator: Generator):
-                for sr, chunk in _generator:
-                    yield pack_audio(BytesIO(), chunk, sr, sample_rate).getvalue()
+        return StreamingResponse(
+            streaming_generator(tts_generator),
+            media_type="audio/raw"
+        )
 
-            return StreamingResponse(
-                streaming_generator(
-                    tts_generator,
-                ),
-                media_type=f"audio/raw",
-            )
-
-        else:
-            sr, audio_data = next(tts_generator)
-            audio_data = pack_audio(BytesIO(), audio_data, sr, sample_rate).getvalue()
-            return Response(audio_data, media_type=f"audio/raw")
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": "tts failed", "Exception": str(e)})
 
