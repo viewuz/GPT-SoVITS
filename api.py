@@ -46,6 +46,7 @@ print(tts_config)
 tts_pipeline = TTS(tts_config)
 
 APP = FastAPI()
+security = HTTPBearer()
 
 speakers = {}
 
