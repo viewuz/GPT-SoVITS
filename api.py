@@ -35,7 +35,7 @@ port = args.port
 host = '0.0.0.0'
 argv = sys.argv
 
-tts_config = TTS_Config("GPT-SoVITS/configs/tts_infer.yaml")
+tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 print(tts_config)
 tts_pipeline = TTS(tts_config)
 
