@@ -22,6 +22,7 @@ from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from pydantic import BaseModel
 from scipy.signal import resample
+from scipy.io import wavfile
 
 i18n = I18nAuto()
 cut_method_names = get_cut_method_names()
@@ -147,6 +148,21 @@ async def speakers_post_endpoint(
 
         with open(save_path, "wb") as buffer:
             buffer.write(await prompt_wav.read())
+
+            # 오디오 길이 체크
+        try:
+            sample_rate, audio_data = wavfile.read(save_path)
+            duration = len(audio_data) / sample_rate
+
+            if not (3.0 <= duration <= 10.0):
+                os.remove(save_path)
+                return JSONResponse(
+                    status_code=400,
+                    content={"message": f"Audio duration must be 3-10 seconds, got {duration:.1f}s"}
+                )
+        except Exception as audio_error:
+            os.remove(save_path)
+            return JSONResponse(status_code=400, content={"message": f"Invalid WAV file: {str(audio_error)}"})
 
         # tts_pipeline.set_ref_audio(save_path)
         speakers[id] = (save_path, prompt_text, prompt_lang)
