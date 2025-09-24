@@ -244,7 +244,7 @@ async def auth_middleware(request: Request, call_next):
 
     try:
         token = auth_header.split(" ")[1]
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, secret, algorithms=[algorithm])
         request.state.user = payload
     except jwt.ExpiredSignatureError:
         return JSONResponse(status_code=401, content={"message": "Token expired"})
@@ -253,21 +253,6 @@ async def auth_middleware(request: Request, call_next):
 
     response = await call_next(request)
     return response
-
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """JWT 토큰 검증"""
-    if not secret:  # secret이 설정되지 않은 경우 검증 스킵
-        return True
-
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(token, secret, algorithms=[algorithm])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 def create_access_token(data: dict):
