@@ -107,7 +107,7 @@ async def tts_handle(speaker_id: str, req: dict):
     req['ref_audio_path'] = ref_audio_path
     req['prompt_text'] = prompt_text
     req['prompt_lang'] = prompt_lang
-    req['text_lang'] = text_lang
+    req['text_lang'] = prompt_lang
 
     try:
         tts_generator = tts_pipeline.run(req)
