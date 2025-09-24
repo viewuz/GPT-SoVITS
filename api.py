@@ -13,8 +13,10 @@ import wave
 import signal
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, Response, Form, File, UploadFile, Path, Body
+from fastapi import FastAPI, Response, Form, File, UploadFile, Path, Body, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import jwt
 import uvicorn
 from io import BytesIO
 from tools.i18n.i18n import I18nAuto
@@ -28,13 +30,16 @@ i18n = I18nAuto()
 cut_method_names = get_cut_method_names()
 
 parser = argparse.ArgumentParser(description="GPT-SoVITS api")
-parser.add_argument("-p", "--port", type=int, default="9880", help="default: 9880")
+parser.add_argument("-p", "--port", type=int, default="8000", help="default: 8000")
+parser.add_argument("-s", "--secret", type=int, default="", help="")
 
 args = parser.parse_args()
 
 port = args.port
 host = '0.0.0.0'
 argv = sys.argv
+secret = args.secret
+algorithm = "HS256"
 
 tts_config = TTS_Config("GPT_SoVITS/configs/tts_infer.yaml")
 print(tts_config)
@@ -204,8 +209,79 @@ async def set_sovits_weights(weights_path: str = None):
     return JSONResponse(status_code=200, content={"message": "success"})
 
 
+@APP.get("/health")
+async def health_check():
+    """헬스 체크 엔드포인트 (인증 불필요)"""
+    return {"status": "healthy", }
+
+
+PUBLIC_ENDPOINTS = {
+    "/docs", "/redoc", "/openapi.json", "/health", "/login"
+}
+
+
+@APP.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """JWT 인증 미들웨어"""
+    # public 엔드포인트는 인증 스킵
+    if request.url.path in PUBLIC_ENDPOINTS:
+        response = await call_next(request)
+        return response
+
+    # secret이 설정되지 않은 경우 인증 스킵
+    if not secret:
+        response = await call_next(request)
+        return response
+
+    # Authorization 헤더 확인
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"message": "Missing or invalid authorization header"}
+        )
+
+    try:
+        token = auth_header.split(" ")[1]
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        request.state.user = payload
+    except jwt.ExpiredSignatureError:
+        return JSONResponse(status_code=401, content={"message": "Token expired"})
+    except jwt.InvalidTokenError:
+        return JSONResponse(status_code=401, content={"message": "Invalid token"})
+
+    response = await call_next(request)
+    return response
+
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """JWT 토큰 검증"""
+    if not secret:  # secret이 설정되지 않은 경우 검증 스킵
+        return True
+
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, secret, algorithms=[algorithm])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+def create_access_token(data: dict):
+    """JWT 토큰 생성"""
+    to_encode = data.copy()
+    encoded_jwt = jwt.encode(to_encode, secret, algorithm=algorithm)
+    return encoded_jwt
+
+
 if __name__ == "__main__":
     try:
+        access_token = create_access_token(data={"sub": "admin"})
+
+        print(f"Access Token: {access_token}")
+
         uvicorn.run(app=APP, host=host, port=port, workers=1)
     except Exception:
         traceback.print_exc()
