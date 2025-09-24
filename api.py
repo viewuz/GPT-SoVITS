@@ -182,6 +182,8 @@ async def speakers_post_endpoint(
         # tts_pipeline.set_ref_audio(save_path)
         speakers[id] = (save_path, prompt_text, prompt_lang)
 
+        print(f"speakers saved: id: {id}, text: {prompt_text}, lang: {prompt_lang}, path: {save_path}")
+
         return JSONResponse(status_code=200, content={"message": "success"})
     except Exception as e:
         return JSONResponse(status_code=400, content={"message": f"set refer audio failed", "Exception": str(e)})
