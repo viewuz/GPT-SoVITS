@@ -51,6 +51,13 @@ security = HTTPBearer()
 speakers = {}
 
 
+# 기쁨 (Joy/Happiness)
+# 슬픔 (Sadness)
+# 분노 (Anger)
+# 두려움 (Fear)
+# 놀람 (Surprise)
+# 혐오 (Disgust)
+
 class TTS_Request(BaseModel):
     text: str = None
     sample_rate: int = 0
@@ -102,6 +109,8 @@ async def tts_handle(speaker_id: str, req: dict):
         return JSONResponse(status_code=404, content={"message": "speaker not found"})
 
     (ref_audio_path, prompt_text, prompt_lang) = speakers[speaker_id]
+
+    print(f"speaker {speaker_id} process start prompt({prompt_lang}, {prompt_text})")
 
     streaming_mode = req.get("streaming", False)
     return_fragment = req.get("return_fragment", False)
