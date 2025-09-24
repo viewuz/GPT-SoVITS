@@ -17,6 +17,7 @@ pyopenjtalk>=0.4.1
 g2p_en
 torchaudio
 modelscope==1.10.0
+scipy==1.11.4
 sentencepiece
 transformers>=4.43,<=4.50
 peft
