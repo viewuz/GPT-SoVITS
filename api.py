@@ -1,11 +1,12 @@
 import os
 import sys
 import traceback
-from typing import Generator
+from typing import Generator, Dict, Tuple
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
+from enum import Enum, StrEnum
 
 import argparse
 import subprocess
@@ -51,15 +52,25 @@ security = HTTPBearer()
 speakers = {}
 
 
-# 기쁨 (Joy/Happiness)
-# 슬픔 (Sadness)
-# 분노 (Anger)
-# 두려움 (Fear)
-# 놀람 (Surprise)
-# 혐오 (Disgust)
+class DialogueEmotion(Enum):
+    NEUTRAL = 'neutral'
+    EXCITED = 'excited'
+    ANGRY = 'angry'
+    SAD = 'sad'
+    EMPATHETIC = 'empathetic'
+    EMBARRASSED = 'embarrassed'
+
+
+class Speaker(BaseModel):
+    id: str
+    language: str
+    prompts: Dict[str, Tuple[str, str]]  # emotion , (local_path, text)
+
 
 class TTS_Request(BaseModel):
     text: str = None
+    emotion: DialogueEmotion = DialogueEmotion.NEUTRAL
+
     sample_rate: int = 0
     streaming: bool = False
     speed_factor: float = 1
@@ -111,9 +122,16 @@ async def tts_handle(speaker_id: str, req: dict):
     if speaker_id not in speakers:
         return JSONResponse(status_code=404, content={"message": "speaker not found"})
 
-    (ref_audio_path, prompt_text, prompt_lang) = speakers[speaker_id]
+    emotion = req.get("emotion", DialogueEmotion.NEUTRAL.value)
 
-    print(f"speaker {speaker_id} process start prompt({prompt_lang}, {prompt_text})")
+    speaker: Speaker = speakers[speaker_id]
+
+    if emotion in speaker.prompts:
+        (ref_audio_path, prompt_text) = speaker.prompts[emotion]
+    else:
+        (ref_audio_path, prompt_text) = speaker.prompts[DialogueEmotion.NEUTRAL.value]
+
+    print(f"Speaker {speaker_id} process start emotion: {emotion}")
 
     streaming_mode = req.get("streaming", False)
     return_fragment = req.get("return_fragment", False)
@@ -125,8 +143,8 @@ async def tts_handle(speaker_id: str, req: dict):
     req['aux_ref_audio_paths'] = None
     req['ref_audio_path'] = ref_audio_path
     req['prompt_text'] = prompt_text
-    req['prompt_lang'] = prompt_lang
-    req['text_lang'] = prompt_lang
+    req['prompt_lang'] = speaker.language
+    req['text_lang'] = speaker.language
 
     try:
         tts_generator = tts_pipeline.run(req)
@@ -155,37 +173,50 @@ async def control(command: str = None):
 
 @APP.post("/speakers")
 async def speakers_post_endpoint(
-        id: str = Form(...),
-        prompt_wav: UploadFile = File(...),
-        prompt_text: str = Form(...),
-        prompt_lang: str = Form(...),
+        request: Request
 ):
+    form = await request.form()
+
+    id = form.get("id")
+    language = form.get("language")
+
     try:
         os.makedirs("uploaded_audio", exist_ok=True)
-        save_path = os.path.join("uploaded_audio", f"{id}.wav")
 
-        with open(save_path, "wb") as buffer:
-            buffer.write(await prompt_wav.read())
+        prompts = {}
 
-            # 오디오 길이 체크
-        try:
-            sample_rate, audio_data = wavfile.read(save_path)
-            duration = len(audio_data) / sample_rate
+        for emotion in DialogueEmotion:
+            wav_key = f"prompt_{emotion.value}_wav"
+            text_key = f"prompt_{emotion.value}_text"
 
-            if not (3.0 <= duration <= 10.0):
-                os.remove(save_path)
-                return JSONResponse(
-                    status_code=400,
-                    content={"message": f"Audio duration must be 3-10 seconds, got {duration:.1f}s"}
-                )
-        except Exception as audio_error:
-            os.remove(save_path)
-            return JSONResponse(status_code=400, content={"message": f"Invalid WAV file: {str(audio_error)}"})
+            if wav_key in form and text_key in form:
+                wav_file = form[wav_key]
+                text = form[text_key]
+                path = os.path.join("uploaded_audio", f"{id}_{emotion.value}.wav")
+                prompts[emotion.value] = (path, text)
 
-        # tts_pipeline.set_ref_audio(save_path)
-        speakers[id] = (save_path, prompt_text, prompt_lang)
+                with open(path, "wb") as buffer:  # ✅
+                    buffer.write(await wav_file.read())
 
-        print(f"speakers saved: id: {id}, text: {prompt_text}, lang: {prompt_lang}, path: {save_path}")
+                try:
+                    sample_rate, audio_data = wavfile.read(path)
+                    duration = len(audio_data) / sample_rate
+
+                    if not (3.0 <= duration <= 10.0):
+                        os.remove(path)
+                        return JSONResponse(
+                            status_code=400,
+                            content={"message": f"Audio duration must be 3-10 seconds, got {duration:.1f}s"}
+                        )
+                except Exception as audio_error:
+                    os.remove(path)
+                    return JSONResponse(status_code=400, content={"message": f"Invalid WAV file: {str(audio_error)}"})
+
+        speaker = Speaker(id=id, language=language, prompts=prompts)
+
+        speakers[id] = speaker
+
+        print(f"speakers saved: id: {id}, prompts count: {len(prompts)}, lang: {language}")
 
         return JSONResponse(status_code=200, content={"message": "success"})
     except Exception as e:
