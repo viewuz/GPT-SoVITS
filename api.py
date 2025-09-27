@@ -129,7 +129,7 @@ async def tts_handle(speaker_id: str, req: dict):
     else:
         (ref_audio_path, prompt_text) = speaker.prompts[DialogueEmotion.NEUTRAL.value]
 
-    print(f"Speaker {speaker_id} process start emotion: {emotion}")
+    print(f"Speaker {speaker_id} process start emotion: {emotion} prompt_path: {ref_audio_path}")
 
     streaming_mode = req.get("streaming", False)
     return_fragment = req.get("return_fragment", False)
@@ -143,6 +143,7 @@ async def tts_handle(speaker_id: str, req: dict):
     req['prompt_text'] = prompt_text
     req['prompt_lang'] = speaker.language
     req['text_lang'] = speaker.language
+    req['streaming_mode'] = streaming_mode
 
     try:
         tts_generator = tts_pipeline.run(req)
