@@ -142,9 +142,7 @@ async def tts_handle(speaker_id: str, req: dict):
     req['prompt_lang'] = speaker.language
     req['text_lang'] = speaker.language
 
-    print(f"Speaker {speaker_id} process {
-    "streaming" if req["return_fragment"] else "normal",
-    } start emotion: {emotion} prompt_path: {ref_audio_path}")
+    print(f"Speaker {speaker_id} process {'streaming' if req['return_fragment'] else 'normal'} start emotion: {emotion} prompt_path: {ref_audio_path}")
 
     try:
         tts_generator = tts_pipeline.run(req)
