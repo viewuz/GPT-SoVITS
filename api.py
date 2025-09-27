@@ -57,8 +57,6 @@ class DialogueEmotion(Enum):
     EXCITED = 'excited'
     ANGRY = 'angry'
     SAD = 'sad'
-    EMPATHETIC = 'empathetic'
-    EMBARRASSED = 'embarrassed'
 
 
 class Speaker(BaseModel):
@@ -216,7 +214,7 @@ async def speakers_post_endpoint(
 
         speakers[id] = speaker
 
-        print(f"speakers saved: id: {id}, prompts count: {len(prompts)}, lang: {language}")
+        print(f"Speakers saved: id: {id}, lang: {language}: {speaker}")
 
         return JSONResponse(status_code=200, content={"message": "success"})
     except Exception as e:
