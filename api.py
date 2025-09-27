@@ -67,7 +67,7 @@ class Speaker(BaseModel):
 
 class TTS_Request(BaseModel):
     text: str = None
-    emotion: DialogueEmotion = DialogueEmotion.NEUTRAL
+    emotion: str = DialogueEmotion.NEUTRAL.value
 
     sample_rate: int = 0
     streaming: bool = False
@@ -129,8 +129,6 @@ async def tts_handle(speaker_id: str, req: dict):
     else:
         (ref_audio_path, prompt_text) = speaker.prompts[DialogueEmotion.NEUTRAL.value]
 
-    print(f"Speaker {speaker_id} process start emotion: {emotion} prompt_path: {ref_audio_path}")
-
     streaming_mode = req.get("streaming", False)
     return_fragment = req.get("return_fragment", False)
     sample_rate = req.get("sample_rate", 0)
@@ -143,7 +141,10 @@ async def tts_handle(speaker_id: str, req: dict):
     req['prompt_text'] = prompt_text
     req['prompt_lang'] = speaker.language
     req['text_lang'] = speaker.language
-    req['streaming_mode'] = streaming_mode
+
+    print(f"Speaker {speaker_id} process {
+    "streaming" if req["return_fragment"] else "normal",
+    } start emotion: {emotion} prompt_path: {ref_audio_path}")
 
     try:
         tts_generator = tts_pipeline.run(req)
