@@ -6,7 +6,7 @@ from typing import Generator, Dict, Tuple
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
-from enum import Enum, StrEnum
+from enum import Enum
 
 import argparse
 import subprocess
