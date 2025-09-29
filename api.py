@@ -70,7 +70,6 @@ class TTS_Request(BaseModel):
     emotion: str = DialogueEmotion.NEUTRAL.value
 
     sample_rate: int = 0
-    streaming: bool = False
     speed_factor: float = 1
 
     top_k: int = 15
@@ -129,20 +128,18 @@ async def tts_handle(speaker_id: str, req: dict):
     else:
         (ref_audio_path, prompt_text) = speaker.prompts[DialogueEmotion.NEUTRAL.value]
 
-    streaming_mode = req.get("streaming", False)
-    return_fragment = req.get("return_fragment", False)
     sample_rate = req.get("sample_rate", 0)
-
-    if streaming_mode or return_fragment:
-        req["return_fragment"] = True
 
     req['aux_ref_audio_paths'] = None
     req['ref_audio_path'] = ref_audio_path
     req['prompt_text'] = prompt_text
     req['prompt_lang'] = speaker.language
     req['text_lang'] = speaker.language
+    req["return_fragment"] = True
+    req["parallel_infer"] = False
 
-    print(f"Speaker {speaker_id} process {'streaming' if req['return_fragment'] else 'normal'} start emotion: {emotion} prompt_path: {ref_audio_path}")
+    # req['text']
+    # TODO: 맥락 흐름을 타서 문장 단위 분할하여 처리 및 전송. 한번에 하면 너무 오래 걸림.
 
     try:
         tts_generator = tts_pipeline.run(req)
