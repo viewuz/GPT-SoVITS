@@ -136,7 +136,7 @@ async def tts_handle(speaker_id: str, req: dict):
     req['prompt_lang'] = speaker.language
     req['text_lang'] = speaker.language
     req["return_fragment"] = True
-    req["parallel_infer"] = False
+    req["parallel_infer"] = True
 
     # req['text']
     # TODO: 맥락 흐름을 타서 문장 단위 분할하여 처리 및 전송. 한번에 하면 너무 오래 걸림.

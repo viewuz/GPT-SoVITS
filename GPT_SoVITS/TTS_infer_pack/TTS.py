@@ -1252,7 +1252,7 @@ class TTS:
                 print(f"############ {i18n('合成音频')} ############")
                 if not self.configs.use_vocoder:
                     print("Use not vcoder")
-                    if speed_factor == 1.0 and not return_fragment:
+                    if speed_factor == 1.0:
                         print(f"{i18n('并行合成中')}...")
                         # ## vits并行推理 method 2
                         pred_semantic_list = [item[-idx:] for item, idx in zip(pred_semantic_list, idx_list)]
@@ -1295,20 +1295,8 @@ class TTS:
                                     _pred_semantic, phones, refer_audio_spec, speed=speed_factor, sv_emb=sv_emb
                                 ).detach()[0, 0, :]
 
-                            if return_fragment:
-                                yield self.audio_postprocess(
-                                    [[audio_fragment]],
-                                    output_sr,
-                                    None,
-                                    speed_factor,
-                                    False,
-                                    fragment_interval,
-                                    super_sampling if self.configs.use_vocoder and self.configs.version == "v3" else False,
-                                )
-                            else:
-                                batch_audio_fragment.append(audio_fragment)
+                            batch_audio_fragment.append(audio_fragment)
                 else:
-                    print("Use vcoder")
                     if parallel_infer:
                         print(f"{i18n('并行合成中')}...")
                         audio_fragments = self.using_vocoder_synthesis_batched_infer(
@@ -1325,19 +1313,7 @@ class TTS:
                                 _pred_semantic, phones, speed=speed_factor, sample_steps=sample_steps
                             )
 
-                            if return_fragment:
-                                yield self.audio_postprocess(
-                                    [[audio_fragment]],  # ✅ 올바른 형식
-                                    output_sr,
-                                    None,
-                                    speed_factor,
-                                    False,
-                                    fragment_interval,
-                                    super_sampling if self.configs.use_vocoder and self.configs.version == "v3" else False,
-                                )
-                            else:
-                                # 배치 모드면 모으기
-                                batch_audio_fragment.append(audio_fragment)
+                            batch_audio_fragment.append(audio_fragment)
 
                 t5 = time.perf_counter()
                 t_45 += t5 - t4
