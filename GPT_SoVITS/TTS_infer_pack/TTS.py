@@ -1252,7 +1252,7 @@ class TTS:
                 print(f"############ {i18n('合成音频')} ############")
                 if not self.configs.use_vocoder:
                     print("Use not vcoder")
-                    if speed_factor == 1.0:
+                    if speed_factor == 1.0 and not return_fragment:
                         print(f"{i18n('并行合成中')}...")
                         # ## vits并行推理 method 2
                         pred_semantic_list = [item[-idx:] for item, idx in zip(pred_semantic_list, idx_list)]
@@ -1294,7 +1294,19 @@ class TTS:
                                 audio_fragment = self.vits_model.decode(
                                     _pred_semantic, phones, refer_audio_spec, speed=speed_factor, sv_emb=sv_emb
                                 ).detach()[0, 0, :]
-                            batch_audio_fragment.append(audio_fragment)  ###试试重建不带上prompt部分
+
+                            if return_fragment:
+                                yield self.audio_postprocess(
+                                    [[audio_fragment]],
+                                    output_sr,
+                                    None,
+                                    speed_factor,
+                                    False,
+                                    fragment_interval,
+                                    super_sampling if self.configs.use_vocoder and self.configs.version == "v3" else False,
+                                )
+                            else:
+                                batch_audio_fragment.append(audio_fragment)
                 else:
                     print("Use vcoder")
                     if parallel_infer:
