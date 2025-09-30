@@ -10,6 +10,8 @@ from copy import deepcopy
 import torchaudio
 from tqdm import tqdm
 
+from GPT_SoVITS.text.g2pw.dataset import prepare_onnx_input
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import os
@@ -1186,6 +1188,7 @@ class TTS:
             audio = []
             output_sr = self.configs.sampling_rate if not self.configs.use_vocoder else self.vocoder_configs["sr"]
             for item in data:
+                print(f"Process item: {item}")
                 t3 = time.perf_counter()
                 if return_fragment:
                     item = make_batch(item)
